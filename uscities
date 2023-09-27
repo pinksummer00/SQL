@@ -1,0 +1,22 @@
+//创建表
+drop table if exists uscities;
+create table uscities(
+    gid serial primary key,
+    name varchar(100),
+    state varchar(100),
+    latitude numeric,
+    longitude numeric);
+
+//通过copy语句导入uscities数据
+copy uscities from 'D:\learning\sdb\Lab2\Lab2\usdata\uscity.txt' delimiter '#'; //delimiter是分隔符
+
+//增加几何属性列
+create extension postgis;//创建一个空间扩展
+select AddGeometryColumn('uscities', 'geom', 0, 'POINT', 2); //2指的是二维坐标
+
+//根据每个城市的longitude和latitude，更新geom属性
+update uscities set geom = ST_Point(longitude, latitude); //更新，设置，让geom更新
+update uscities set geom = st_geomfromtext(ST_AsText(geom),4326); //ST_point是文本类型，需转化成几何对象，把geom作为文本，4326是wgs84坐标的代码
+
+//在QGIS中查看uscities
+select * from uscities
