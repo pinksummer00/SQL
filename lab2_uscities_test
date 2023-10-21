@@ -1,0 +1,29 @@
+//查询伊利湖(Erie)几何数据中顶点的数目
+//更新坐标
+update uscities set geom = st_geomfromtext(ST_AsText(geom),4326);
+
+select gid,name,ST_NPoints(geom) as num_points,geom
+from uslakes 
+where name like '%Erie%'
+
+
+
+//查询高速公路全称(full_name)为’I 279’的凸包，要求查询结果模式至少包含gid，name和geom属性
+select gid,name,ST_ConvexHull(geom),geom
+from ushighways
+where full_name='I 279'
+
+
+
+//查询哪些湖中有岛，要求查询结果模式至少包含gid，name和geom属性
+select gid,name,ST_NRings(geom),geom
+from uslakes
+where ST_NRings(geom)>1
+
+
+
+//查询湖的面积属性是否准确(绝对误差小于1e-6)，列出面积属性不准确的湖及其误差，查询结果模式为(gid，name，error)
+数据清洗与验证：数据输入时，可能存在错误或误差，此时需要通过数据清理Data Cleaning，对数据进行验证和纠错
+select gid,name,abs(shape_area-st_area(geom)) as error
+from uslakes
+where abs(shape_area-st_area(geom))>1e-6
