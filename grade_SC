@@ -1,0 +1,23 @@
+drop table if exists SC;
+create table SC (Sno int, Cno int, Grade int);
+insert into SC values(30001, 101, 83);
+insert into SC values(30002, 101, 92);
+insert into SC values(30003, 101, 74);
+insert into SC values(30004, 101, 86);
+insert into SC values(30005, 101, 62);
+insert into SC values(30001, 102, 79);
+insert into SC values(30003, 102, 61);
+insert into SC values(30005, 102, NULL);
+insert into SC values(30001, 103, 87);
+
+select * from SC;
+
+insert into SC values(085013, 103, 90);
+
+select count(*) from SC where Cno = 101
+
+select Cno, max(Grade)
+from SC
+group by Cno
+
+select grade from SC where sno=085013
