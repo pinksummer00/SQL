@@ -20,3 +20,4 @@ update uscities set geom = st_geomfromtext(ST_AsText(geom),4326); //ST_point是�
 
 //在QGIS中查看uscities
 select * from uscities
+
