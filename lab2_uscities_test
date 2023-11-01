@@ -1,4 +1,4 @@
-//查询伊利湖(Erie)几何数据中顶点的数目
+1.查询伊利湖(Erie)几何数据中顶点的数目；
 //更新坐标
 update uscities set geom = st_geomfromtext(ST_AsText(geom),4326);
 
@@ -8,22 +8,103 @@ where name like '%Erie%'
 
 
 
-//查询高速公路全称(full_name)为’I 279’的凸包，要求查询结果模式至少包含gid，name和geom属性
+2.查询高速公路全称(full_name)为’I 279’的凸包，要求查询结果模式至少包含gid，name和geom属性；
 select gid,name,ST_ConvexHull(geom),geom
 from ushighways
 where full_name='I 279'
 
 
 
-//查询哪些湖中有岛，要求查询结果模式至少包含gid，name和geom属性
+3.查询哪些湖中有岛，要求查询结果模式至少包含gid，name和geom属性；
 select gid,name,ST_NRings(geom),geom
 from uslakes
 where ST_NRings(geom)>1
 
 
 
-//查询湖的面积属性是否准确(绝对误差小于1e-6)，列出面积属性不准确的湖及其误差，查询结果模式为(gid，name，error)
-数据清洗与验证：数据输入时，可能存在错误或误差，此时需要通过数据清理Data Cleaning，对数据进行验证和纠错
+4.查询湖的面积属性是否准确(绝对误差小于1e-6)，列出面积属性不准确的湖及其误差，查询结果模式为(gid，name，error)；
+数据清洗与验证：数据输入时，可能存在错误或误差，此时需要通过数据清理Data Cleaning，对数据进行验证和纠错；
 select gid,name,abs(shape_area-st_area(geom)) as error
 from uslakes
 where abs(shape_area-st_area(geom))>1e-6
+
+
+
+5. 查询最长的高速公路及其长度(单位为千米)，查询结果模式为(gid，name，geom，length)，其中name为高速公路的full_name；
+函数方法：
+select gid,full_name as name,ST_Length(geom) as length
+from ushighways
+where ST_Length(geom)=(select max(ST_Length(geom))
+					   from ushighways)
+
+排序方法：
+select gid,full_name as name,ST_Length(geom) as length
+from ushighways
+order by length desc
+limit 1
+
+
+
+6. 查询距离ST_CASE = 10001交通事故最近的城市，查询返回距离最近的城市名'name in state' ；
+函数方法：
+select c.gid,concat(c.name,' in ',c.state) as name,ST_Distance(c.geom,a.geom) as distance
+from uscities c,usaccidents a
+where ST_Distance(c.geom,a.geom)=(select min(ST_Distance(c.geom,a.geom))
+								  from uscities c,usaccidents a
+								   where a.st_case=10001)
+
+排序方法：
+select c.gid,concat(c.name,' in ',c.state) as name,ST_Distance(c.geom,a.geom) as distance
+from uscities c,usaccidents a
+where a.st_case=10001
+order by distance
+limit 1
+
+
+
+7. 查询与苏必利尔湖(Superior)的质心距离最近的城市，要求查询结果模式至少包含gid，name和geom属性，其中城市的name为‘name in state’的格式；
+函数方法：
+select c.gid,concat(c.name,' in ',c.state) as name,c.geom,ST_Distance(c.geom,ST_Centroid(l.geom))as distance,ST_Centroid(l.geom)
+from uslakes l,uscities c
+where ST_Distance(c.geom,ST_Centroid(l.geom))=(select min(ST_Distance(c.geom,ST_Centroid(l.geom)))
+											   from uslakes l,uscities c
+											   where l.name ='Lake Superior')
+
+排序方法：
+select c.gid,concat(c.name,' in ',c.state) as name,c.geom,ST_Distance(c.geom,ST_Centroid(l.geom))as distance,ST_Centroid(l.geom)
+from uslakes l,uscities c
+where l.name ='Lake Superior'
+order by distance
+limit 1
+
+联合：
+(select concat(c.name,' in ',c.state) as name,c.geom
+from uslakes l,uscities c
+where l.name ='Lake Superior'
+order by ST_Distance(c.geom,ST_Centroid(l.geom))
+limit 1)
+UNION 
+(select concat(c.name,' in ',c.state) as name,l.geom
+from uslakes l,uscities c
+where l.name ='Lake Superior'
+order by ST_Distance(c.geom,ST_Centroid(l.geom))
+limit 1)
+
+
+
+
+8. 查询与伊利湖(Erie)距离最近的高速公路，要求查询结果模式至少包含gid，name和geom属性，其中高速公路的name为full_name；
+函数方法：
+select h.gid,h.full_name as name,h.geom,ST_Distance(h.geom,ST_Centroid(l.geom))as distance,ST_Centroid(l.geom)
+from uslakes l,ushighways h
+where ST_Distance(h.geom,ST_Centroid(l.geom))=(select min(ST_Distance(h.geom,ST_Centroid(l.geom)))
+											   from uslakes l,ushighways h
+											   where l.name ='Lake Erie')
+
+排序方法：
+select h.gid,h.full_name as name,h.geom,ST_Distance(h.geom,ST_Centroid(l.geom))as distance,ST_Centroid(l.geom)
+from uslakes l,ushighways h
+where l.name ='Lake Erie'
+order by distance
+limit 1
+
