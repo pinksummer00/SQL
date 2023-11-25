@@ -108,3 +108,47 @@ where l.name ='Lake Erie'
 order by distance
 limit 1
 
+
+
+9. 查询94号公路(全称为I 94)与哪些高速公路联通（不包括94号公路），要求查询结果模式至少包含gid，name和geom属性，其中name为高速公路的full_name；
+select h.gid,h.full_name as name,h.geom
+from ushighways h94,ushighways h
+where h94.full_name='I 94' and ST_Intersects(h94.geom, h.geom) and h.full_name != 'I 94'
+order by h.gid
+
+
+
+10. 查询哪个城市最偏僻，即离高速公路的距离最远，在OpenStreetMap中展示最偏僻的城市和与其最近的高速公路，
+要求查询结果模式至少包含gid，name和geom属性，其中高速公路的name为full_name,输出结果显示最偏僻的城市以及离它最近的公路;
+with M as (select c.gid,c.name,c.geom,min(st_distance(c.geom,h.geom)) as mindis
+from uscities c,ushighways h
+group by c.gid)
+(select gid,name,geom
+from M
+order by mindis desc
+limit 1)
+union
+(select h.gid,h.full_name,h.geom
+from ushighways h,M
+where st_distance(h.geom,M.geom)=(select max(mindis) from M)
+)
+
+
+
+
+11. 查询哪条高速公路上的交通事故最多（将交通事故与高速公路基于空间距离进行关联，即距离某高速公路小于500米，认为该交通事故发生在这条高速公路上）。
+由于交通事故较多，完整的查询大约需要30分钟，可以使用ST_DWithin加速距离判断，同时仅考虑在7月和8月发生的交通事故。
+要求展示这些高速公路和其关联的交通事故，查询结果模式至少包含gid，name和geom属性，其中高速公路的name为full_name.
+with N as (select h.gid,h.full_name as name,h.geom,count(a.gid) as accnum
+from usaccidents a,ushighways h
+where ST_DWithin(a.geom,h.geom, 500, TRUE) and month between 7 and 8
+group by h.gid)
+(select gid,name,geom,accnum
+from N
+where accnum>=(select max(accnum) from N)
+)
+union
+(select a.gid,'-' as name,a.geom,accnum
+from usaccidents a,N
+where accnum>=(select max(accnum) from N)
+)
